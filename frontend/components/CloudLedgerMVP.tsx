@@ -2,8 +2,10 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import { Column, Row, Formula, Sheet } from "@/types";
+import { useState } from "react";
+
+import { Sheet } from "@/types";
+
 import { exportActiveSheet } from "@/utils/export";
 
 import CreateSheetModal from "@/components/modals/CreateSheetModal";
@@ -45,7 +47,11 @@ export default function CloudLedgerMVP() {
       formulas: [],
     },
   ]);
-
+const [searchQuery, setSearchQuery] = useState("");
+const [sortConfig, setSortConfig] = useState<{
+  columnId: string;
+  direction: "asc" | "desc";
+} | null>(null);
   const [activeSheetId, setActiveSheetId] = useState("1");
   const [createSheetModalOpen, setCreateSheetModalOpen] = useState(false);
   const [formulaModalOpen, setFormulaModalOpen] = useState(false);
@@ -87,6 +93,28 @@ const {
   setDeleteSheetModalOpen,
 });
 
+const renameSheet = (name: string) => {
+  setSheets((prev) =>
+    prev.map((sheet) =>
+      sheet.id === activeSheetId
+        ? { ...sheet, name }
+        : sheet
+    )
+  );
+};
+
+const handleSort = (columnId: string) => {
+  setSortConfig((prev) => {
+    if (prev?.columnId === columnId) {
+      return {
+        columnId,
+        direction: prev.direction === "asc" ? "desc" : "asc",
+      };
+    }
+    return { columnId, direction: "asc" };
+  });
+};
+
   useStorage({
   sheets,
   activeSheetId,
@@ -99,7 +127,36 @@ const {
  
   const defaultExportName = `${activeSheet?.name || "Sheet"}_${formatDateTimeForFileName()}`;
 
-  
+  const processedSheet = activeSheet
+  ? {
+      ...activeSheet,
+      rows: [...activeSheet.rows]
+        // 🔍 FILTER
+        .filter((row) =>
+          Object.values(row.values).some((value) =>
+            String(value)
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase())
+          )
+        )
+        // 🔽 SORT
+        .sort((a, b) => {
+          if (!sortConfig) return 0;
+
+          const aVal = a.values[sortConfig.columnId];
+          const bVal = b.values[sortConfig.columnId];
+
+          if (aVal === bVal) return 0;
+
+          if (sortConfig.direction === "asc") {
+            return aVal > bVal ? 1 : -1;
+          } else {
+            return aVal < bVal ? 1 : -1;
+          }
+        }),
+    }
+  : undefined;
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row">
       <SheetSidebar
@@ -125,27 +182,44 @@ const {
           </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-            <div className="p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <h2 className="text-black text-2xl font-bold">
-                {activeSheet.name}
-              </h2>
+            <div className="p-4 border-b flex flex-col gap-4">
+  
+  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <input
+      value={activeSheet.name}
+      onChange={(e) => renameSheet(e.target.value)}
+      className="text-2xl font-bold text-black border-b outline-none bg-transparent focus:border-black"
+    />
 
-              <SheetToolbar
-  onAddColumn={() => setColumnModalOpen(true)}
-  onAddFormula={() => setFormulaModalOpen(true)}
-  onAddRow={addRow}
-  onExport={() => setExportModalOpen(true)}
-/>
-            </div>
+    <SheetToolbar
+      onAddColumn={() => setColumnModalOpen(true)}
+      onAddFormula={() => setFormulaModalOpen(true)}
+      onAddRow={addRow}
+      onExport={() => setExportModalOpen(true)}
+    />
+  </div>
+
+  <input
+    type="text"
+    placeholder="Search..."
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+    className="px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-black text-black"
+  />
+
+</div>
 
             <SheetTable
-              activeSheet={activeSheet}
+              activeSheet={processedSheet}
               sensors={sensors}
               handleDragStart={handleDragStart}
               handleDragEnd={handleDragEnd}
               deleteColumn={deleteColumn}
               updateCell={updateCell}
               deleteRow={deleteRow}
+                handleSort={handleSort}
+                sortConfig={sortConfig}
+
             />
 
             <SheetSummary activeSheet={activeSheet} />

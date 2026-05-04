@@ -26,6 +26,8 @@ export default function SheetTable({
   deleteColumn,
   updateCell,
   deleteRow,
+  handleSort,
+  sortConfig 
 }: {
   activeSheet: Sheet | undefined;
   sensors: any;
@@ -34,6 +36,11 @@ export default function SheetTable({
   deleteColumn: (columnId: string) => void;
   updateCell: (rowId: string, columnId: string, value: string) => void;
   deleteRow: (rowId: string) => void;
+  handleSort: (columnId: string) => void;
+  sortConfig: {
+    columnId: string;
+    direction: "asc" | "desc";
+  } | null;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -57,6 +64,8 @@ export default function SheetTable({
                     key={column.id}
                     column={column}
                     onDelete={deleteColumn}
+                     onSort={handleSort}
+                     sortConfig={sortConfig}
                   />
                 ))}
               </SortableContext>
