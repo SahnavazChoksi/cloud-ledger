@@ -17,7 +17,8 @@ import FormulaModal from "./modals/FormulaModal";
 import ExportModal from "./modals/ExportModal";
 
 import SheetSidebar from "./sidebar/SheetSidebar";
-import { loadAppData, saveAppData } from "@/utils/storage";
+
+import { useStorage } from "@/hooks/useStorage";
 
 import { formatDateTimeForFileName } from "@/utils/date";
 
@@ -25,16 +26,11 @@ import SheetTable from "./table/SheetTable";
 
 import SheetSummary from "./summary/SheetSummary";
 
-import {
-  PointerSensor,
-  TouchSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  DragStartEvent,
-} from "@dnd-kit/core";
-import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { useDragAndDrop } from "@/hooks/useDragAndDrop";
+
+import { useSheetActions } from "@/hooks/useSheetActions";
+
+import SheetToolbar from "./header/SheetToolbar";
 
 export default function CloudLedgerMVP() {
   const [sheets, setSheets] = useState<Sheet[]>([
@@ -51,7 +47,6 @@ export default function CloudLedgerMVP() {
   ]);
 
   const [activeSheetId, setActiveSheetId] = useState("1");
-  const [dragType, setDragType] = useState<"row" | "column" | null>(null);
   const [createSheetModalOpen, setCreateSheetModalOpen] = useState(false);
   const [formulaModalOpen, setFormulaModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -61,273 +56,50 @@ export default function CloudLedgerMVP() {
   const [deleteSheetModalOpen, setDeleteSheetModalOpen] = useState(false);
   const activeSheet = sheets.find((sheet) => sheet.id === activeSheetId);
   const sheetToDelete = sheets.find((sheet) => sheet.id === deleteSheetId);
-  useEffect(() => {
-    const savedData = loadAppData();
 
-    if (savedData) {
-      setSheets(savedData.sheets || []);
-      setActiveSheetId(savedData.activeSheetId || "1");
-    }
+  const {
+  sensors,
+  handleDragStart,
+  handleDragEnd,
+} = useDragAndDrop({
+  activeSheet,
+  activeSheetId,
+  setSheets,
+});
 
-    setIsLoaded(true);
-  }, []);
+const {
+  createSheet,
+  openDeleteSheetModal,
+  deleteSheet,
+  addColumn,
+  addFormula,
+  addRow,
+  updateCell,
+  deleteRow,
+  deleteColumn,
+} = useSheetActions({
+  sheets,
+  setSheets,
+  activeSheet,
+  activeSheetId,
+  setActiveSheetId,
+  setDeleteSheetId,
+  setDeleteSheetModalOpen,
+});
 
-  useEffect(() => {
-    if (!isLoaded) return;
+  useStorage({
+  sheets,
+  activeSheetId,
+  setSheets,
+  setActiveSheetId,
+  isLoaded,
+  setIsLoaded,
+});
 
-    saveAppData(sheets, activeSheetId);
-  }, [sheets, activeSheetId, isLoaded]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 200,
-        tolerance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-
+ 
   const defaultExportName = `${activeSheet?.name || "Sheet"}_${formatDateTimeForFileName()}`;
 
-  const createSheet = (data: { name: string }) => {
-    const newSheet: Sheet = {
-      id: Date.now().toString(),
-      name: data.name,
-      columns: [],
-      rows: [],
-      formulas: [],
-    };
-
-    setSheets((prev) => [...prev, newSheet]);
-    setActiveSheetId(newSheet.id);
-  };
-  const openDeleteSheetModal = (sheetId: string) => {
-    setDeleteSheetId(sheetId);
-    setDeleteSheetModalOpen(true);
-  };
-
-  const deleteSheet = (sheetId: string) => {
-    setSheets((prev) => {
-      const nextSheets = prev.filter((sheet) => sheet.id !== sheetId);
-
-      setActiveSheetId((current) => {
-        if (current !== sheetId) return current;
-        return nextSheets[0]?.id || "";
-      });
-
-      return nextSheets;
-    });
-
-    setDeleteSheetId(null);
-    setDeleteSheetModalOpen(false);
-  };
-
-  const addColumn = (data: {
-    name: string;
-    type: "text" | "number" | "date";
-  }) => {
-    const newColumn: Column = {
-      id: Date.now().toString(),
-      name: data.name,
-      type: data.type,
-    };
-
-    setSheets((prev) =>
-      prev.map((sheet) =>
-        sheet.id !== activeSheetId
-          ? sheet
-          : {
-              ...sheet,
-              columns: [...sheet.columns, newColumn],
-              rows: sheet.rows.map((row) => ({
-                ...row,
-                values: { ...row.values, [newColumn.id]: "" },
-              })),
-            },
-      ),
-    );
-  };
-
-  const addFormula = (data: {
-    name: string;
-    kind: "line" | "running" | "summary";
-    operation: "add" | "subtract" | "multiply" | "divide" | "sum";
-    sourceColumnId: string;
-    sourceColumnId2?: string;
-  }) => {
-    if (!activeSheet) return;
-
-    const newFormula: Formula = {
-      id: Date.now().toString(),
-      name: data.name,
-      kind: data.kind,
-      operation: data.operation,
-      sourceColumnId: data.sourceColumnId,
-      sourceColumnId2: data.sourceColumnId2,
-      targetColumnId:
-        data.kind === "summary" ? undefined : Date.now().toString(),
-    };
-
-    setSheets((prev) =>
-      prev.map((sheet) =>
-        sheet.id !== activeSheetId
-          ? sheet
-          : {
-              ...sheet,
-              columns:
-                data.kind === "summary"
-                  ? sheet.columns
-                  : [
-                      ...sheet.columns,
-                      {
-                        id: newFormula.targetColumnId as string,
-                        name: data.name,
-                        type: "formula",
-                      },
-                    ],
-              formulas: [...sheet.formulas, newFormula],
-            },
-      ),
-    );
-  };
-
-  const addRow = () => {
-    if (!activeSheet) return;
-
-    const newRow: Row = { id: Date.now().toString(), values: {} };
-
-    activeSheet.columns.forEach((column) => {
-      if (column.type !== "formula") newRow.values[column.id] = "";
-    });
-
-    setSheets((prev) =>
-      prev.map((sheet) =>
-        sheet.id !== activeSheetId
-          ? sheet
-          : { ...sheet, rows: [...sheet.rows, newRow] },
-      ),
-    );
-  };
-
-  const updateCell = (rowId: string, columnId: string, value: string) => {
-    setSheets((prev) =>
-      prev.map((sheet) => {
-        if (sheet.id !== activeSheetId) return sheet;
-
-        return {
-          ...sheet,
-          rows: sheet.rows.map((row) =>
-            row.id !== rowId
-              ? row
-              : {
-                  ...row,
-                  values: {
-                    ...row.values,
-                    [columnId]:
-                      sheet.columns.find((c) => c.id === columnId)?.type ===
-                      "number"
-                        ? value === ""
-                          ? ""
-                          : Number(value)
-                        : value,
-                  },
-                },
-          ),
-        };
-      }),
-    );
-  };
-
-  const deleteRow = (rowId: string) => {
-    setSheets((prev) =>
-      prev.map((sheet) =>
-        sheet.id !== activeSheetId
-          ? sheet
-          : { ...sheet, rows: sheet.rows.filter((row) => row.id !== rowId) },
-      ),
-    );
-  };
-
-  const deleteColumn = (columnId: string) => {
-    setSheets((prev) =>
-      prev.map((sheet) =>
-        sheet.id !== activeSheetId
-          ? sheet
-          : {
-              ...sheet,
-              columns: sheet.columns.filter((col) => col.id !== columnId),
-              formulas: sheet.formulas.filter(
-                (formula) =>
-                  formula.sourceColumnId !== columnId &&
-                  formula.sourceColumnId2 !== columnId &&
-                  (formula.targetColumnId
-                    ? formula.targetColumnId !== columnId
-                    : true),
-              ),
-              rows: sheet.rows.map((row) => {
-                const nextValues = { ...row.values };
-                delete nextValues[columnId];
-                return { ...row, values: nextValues };
-              }),
-            },
-      ),
-    );
-  };
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const id = String(event.active.id);
-    if (activeSheet?.columns.some((c) => c.id === id)) setDragType("column");
-    else if (activeSheet?.rows.some((r) => r.id === id)) setDragType("row");
-    else setDragType(null);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id || !activeSheet) {
-      setDragType(null);
-      return;
-    }
-
-    if (dragType === "row") {
-      const oldIndex = activeSheet.rows.findIndex((r) => r.id === active.id);
-      const newIndex = activeSheet.rows.findIndex((r) => r.id === over.id);
-      if (oldIndex !== -1 && newIndex !== -1) {
-        setSheets((prev) =>
-          prev.map((sheet) =>
-            sheet.id !== activeSheetId
-              ? sheet
-              : { ...sheet, rows: arrayMove(sheet.rows, oldIndex, newIndex) },
-          ),
-        );
-      }
-    }
-
-    if (dragType === "column") {
-      const oldIndex = activeSheet.columns.findIndex((c) => c.id === active.id);
-      const newIndex = activeSheet.columns.findIndex((c) => c.id === over.id);
-      if (oldIndex !== -1 && newIndex !== -1) {
-        setSheets((prev) =>
-          prev.map((sheet) =>
-            sheet.id !== activeSheetId
-              ? sheet
-              : {
-                  ...sheet,
-                  columns: arrayMove(sheet.columns, oldIndex, newIndex),
-                },
-          ),
-        );
-      }
-    }
-
-    setDragType(null);
-  };
-
+  
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row">
       <SheetSidebar
@@ -358,35 +130,12 @@ export default function CloudLedgerMVP() {
                 {activeSheet.name}
               </h2>
 
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => setColumnModalOpen(true)}
-                  className="px-4 py-2 bg-black text-white border rounded-xl hover:bg-gray-500"
-                >
-                  + Add Column
-                </button>
-
-                <button
-                  onClick={() => setFormulaModalOpen(true)}
-                  className="px-4 py-2 bg-black text-white border rounded-xl hover:bg-gray-500"
-                >
-                  + Add Formula
-                </button>
-
-                <button
-                  onClick={addRow}
-                  className="px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-500"
-                >
-                  + Add Row
-                </button>
-
-                <button
-                  onClick={() => setExportModalOpen(true)}
-                  className="px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-500"
-                >
-                  Export
-                </button>
-              </div>
+              <SheetToolbar
+  onAddColumn={() => setColumnModalOpen(true)}
+  onAddFormula={() => setFormulaModalOpen(true)}
+  onAddRow={addRow}
+  onExport={() => setExportModalOpen(true)}
+/>
             </div>
 
             <SheetTable

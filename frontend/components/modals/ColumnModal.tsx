@@ -9,6 +9,10 @@ import { ColumnModalState } from "@/types";
 
 import { COLUMN_HELP } from "@/components/constants/help";
 
+import { ColumnType } from "@/types";
+
+import { DEFAULT_COLUMN_MODAL } from "@/components/constants/modalDefaults";
+
 export default function ColumnModal({
   open,
   onClose,
@@ -16,17 +20,13 @@ export default function ColumnModal({
 }: {
   open: boolean;
   onClose: () => void;
-  onSave: (data: { name: string; type: "text" | "number" | "date" }) => void;
+  onSave: (data: { name: string; type: Exclude<ColumnType, "formula">; }) => void;
 }) {
-  const [state, setState] = useState<ColumnModalState>({
-    name: "",
-    type: "text",
-    error: "",
-  });
+  const [state, setState] = useState<ColumnModalState>(DEFAULT_COLUMN_MODAL);
 
   useEffect(() => {
     if (!open) return;
-    setState({ name: "", type: "text", error: "" });
+    setState(DEFAULT_COLUMN_MODAL);
   }, [open]);
 
   if (!open) return null;
@@ -38,7 +38,7 @@ export default function ColumnModal({
       return setState((p) => ({ ...p, error: "Please enter a column name." }));
     }
     onSave({ name: state.name.trim(), type: state.type });
-    setState({ name: "", type: "text", error: "" });
+    setState(DEFAULT_COLUMN_MODAL);
   };
 
   return (
@@ -58,8 +58,8 @@ export default function ColumnModal({
             onChange={(e) =>
               setState((p) => ({ ...p, name: e.target.value, error: "" }))
             }
-            placeholder="Company"
-            className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+            placeholder="Column Name"
+            className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black text-black"
           />
         </div>
 
@@ -76,7 +76,7 @@ export default function ColumnModal({
                 error: "",
               }))
             }
-            className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+            className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black text-black"
           >
             <option value="text">Text</option>
             <option value="number">Number</option>

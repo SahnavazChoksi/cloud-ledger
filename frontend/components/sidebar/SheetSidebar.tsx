@@ -1,4 +1,4 @@
-/**CloudLedger\frontend\components\sidebar\SheetSidebar.tsx */
+/*CloudLedger\frontend\components\sidebar\SheetSidebar.tsx */
 
 "use client";
 

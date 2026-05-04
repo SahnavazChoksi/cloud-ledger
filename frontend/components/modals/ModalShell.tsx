@@ -1,4 +1,4 @@
-/**CloudLedger\frontend\components\modals\ModalShell.tsx*/
+/*CloudLedger\frontend\components\modals\ModalShell.tsx*/
 
 import { ReactNode } from "react";
 

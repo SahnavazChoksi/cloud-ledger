@@ -1,10 +1,12 @@
-/** C:\Users\sahna\OneDrive\Desktop\CloudLedger\frontend\components\modals\CreateSheetModal.tsx */
+/*CloudLedger\frontend\components\modals\CreateSheetModal.tsx */
 
 "use client";
 
 import { useEffect, useState } from "react";
 import ModalShell from "./ModalShell";
 import { SheetModalState } from "@/types";
+import { DEFAULT_SHEET_MODAL } from "@/components/constants/modalDefaults";
+import Button from "@/components/ui/Button";
 
 export default function CreateSheetModal({
   open,
@@ -15,14 +17,13 @@ export default function CreateSheetModal({
   onClose: () => void;
   onSave: (data: { name: string }) => void;
 }) {
-  const [state, setState] = useState<SheetModalState>({
-    name: "",
-    error: "",
-  });
+  const [state, setState] = useState<SheetModalState>(
+  DEFAULT_SHEET_MODAL,
+);
 
   useEffect(() => {
     if (!open) return;
-    setState({ name: "", error: "" });
+    setState(DEFAULT_SHEET_MODAL);
   }, [open]);
 
   if (!open) return null;
@@ -35,7 +36,7 @@ export default function CreateSheetModal({
     }
 
     onSave({ name: clean });
-    setState({ name: "", error: "" });
+    setState(DEFAULT_SHEET_MODAL);
   };
 
   return (
@@ -55,8 +56,8 @@ export default function CreateSheetModal({
             onChange={(e) =>
               setState((p) => ({ ...p, name: e.target.value, error: "" }))
             }
-            placeholder="Hospitality"
-            className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+            placeholder="Sheet Name"
+            className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black text-black"
           />
           <p className="text-xs text-gray-500 mt-1">
             Example: Hospitality, Retail, Vendors, Invoices.
@@ -83,20 +84,19 @@ export default function CreateSheetModal({
       </div>
 
       <div className="p-4 sm:p-6 border-t flex flex-col sm:flex-row gap-3 sm:justify-end">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-4 py-2 rounded-xl border text-black hover:bg-gray-100"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          className="px-4 py-2 rounded-xl bg-black text-white hover:bg-gray-500"
-        >
-          Create Sheet
-        </button>
+       <Button
+  type="button"
+  variant="secondary"
+  onClick={onClose}
+>
+  Cancel
+</Button>
+        <Button
+  type="button"
+  onClick={handleSave}
+>
+  Create Sheet
+</Button>
       </div>
     </ModalShell>
   );

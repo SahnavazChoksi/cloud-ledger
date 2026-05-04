@@ -1,4 +1,4 @@
-/**CloudLedger\frontend\components\modals\FormulaModal.tsx */
+/*CloudLedger\frontend\components\modals\FormulaModal.tsx */
 
 "use client";
 
@@ -10,6 +10,10 @@ import { Column, FormulaModalState } from "@/types";
 
 import { FORMULA_HELP } from "@/components/constants/help";
 
+import { ColumnType, FormulaKind, FormulaOperation } from "@/types/index"
+
+import { DEFAULT_FORMULA_MODAL } from "@/components/constants/modalDefaults";
+
 export default function FormulaModal({
   open,
   onClose,
@@ -20,32 +24,20 @@ export default function FormulaModal({
   onClose: () => void;
   onSave: (data: {
     name: string;
-    kind: "line" | "running" | "summary";
-    operation: "add" | "subtract" | "multiply" | "divide" | "sum";
+    kind: FormulaKind;
+    operation: FormulaOperation;
     sourceColumnId: string;
     sourceColumnId2?: string;
   }) => void;
   columns: Column[];
 }) {
-  const [state, setState] = useState<FormulaModalState>({
-    name: "",
-    kind: "line",
-    operation: "multiply",
-    sourceColumnId: "",
-    sourceColumnId2: "",
-    error: "",
-  });
+  const [state, setState] = useState<FormulaModalState>(
+    DEFAULT_FORMULA_MODAL
+  );
 
   useEffect(() => {
     if (!open) return;
-    setState({
-      name: "",
-      kind: "line",
-      operation: "multiply",
-      sourceColumnId: "",
-      sourceColumnId2: "",
-      error: "",
-    });
+    setState(DEFAULT_FORMULA_MODAL);
   }, [open]);
 
   if (!open) return null;
@@ -78,14 +70,7 @@ export default function FormulaModal({
       sourceColumnId2: showSecondColumn ? state.sourceColumnId2 : undefined,
     });
 
-    setState({
-      name: "",
-      kind: "line",
-      operation: "multiply",
-      sourceColumnId: "",
-      sourceColumnId2: "",
-      error: "",
-    });
+    setState(DEFAULT_FORMULA_MODAL);
   };
 
   return (
@@ -107,7 +92,7 @@ export default function FormulaModal({
                 setState((p) => ({ ...p, name: e.target.value, error: "" }))
               }
               placeholder="Line Total"
-              className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+              className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black text-black"
             />
           </div>
 
@@ -127,7 +112,7 @@ export default function FormulaModal({
                   error: "",
                 }));
               }}
-              className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+              className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black text-black"
             >
               <option value="line">Line Total</option>
               <option value="running">Running Total</option>
@@ -146,7 +131,7 @@ export default function FormulaModal({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-black mb-1">
+            <label className="block text-sm font-medium text-black mb-1 ">
               Source Column
             </label>
             <select
@@ -158,7 +143,7 @@ export default function FormulaModal({
                   error: "",
                 }))
               }
-              className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+              className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black text-black"
             >
               <option value="">Select column</option>
               {columns
@@ -185,7 +170,7 @@ export default function FormulaModal({
                     error: "",
                   }))
                 }
-                className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+                className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black text-black"
               >
                 <option value="">Select column</option>
                 {columns
@@ -214,7 +199,7 @@ export default function FormulaModal({
                   error: "",
                 }))
               }
-              className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+              className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black text-black"
             >
               <option value="multiply">Multiply</option>
               <option value="add">Add</option>

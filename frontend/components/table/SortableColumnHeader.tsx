@@ -1,11 +1,11 @@
-/**C:\Users\sahna\OneDrive\Desktop\CloudLedger\frontend\components\table\SortableColumnHeader.tsx */
+/*CloudLedger\frontend\components\table\SortableColumnHeader.tsx */
 
-'use client';
+"use client";
 
-import { Column } from '@/types';
+import { Column } from "@/types";
 
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export default function SortableColumnHeader({
   column,
@@ -35,20 +35,20 @@ export default function SortableColumnHeader({
     <th
       ref={setNodeRef}
       style={style}
-      className="text-black text-left px-4 py-3 whitespace-nowrap bg-gray-100 border-b"
+      className="text-white text-left px-4 py-3 whitespace-nowrap bg-gray-100 border-b"
     >
       <div className="flex items-center gap-2">
         <button
           ref={setActivatorNodeRef}
           type="button"
-          className="cursor-grab select-none px-3 py-3 rounded bg-gray-200 hover:bg-gray-300"
-          style={{ touchAction: 'none' }}
+          className="cursor-grab select-none px-3 py-3 rounded bg-gray-500 hover:bg-gray-300"
+          style={{ touchAction: "none" }}
           {...attributes}
           {...listeners}
         >
           ☰
         </button>
-        <span className="font-semibold">{column.name}</span>
+        <span className="font-semibold text-black">{column.name}</span>
         <button
           type="button"
           onClick={() => onDelete(column.id)}

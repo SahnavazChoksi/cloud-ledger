@@ -44,7 +44,7 @@ export default function SortableRow({
         <button
           ref={setActivatorNodeRef}
           type="button"
-          className="cursor-grab select-none px-3 py-3 rounded bg-gray-200 hover:bg-gray-300"
+          className="cursor-grab select-none px-3 py-3 rounded bg-gray-500 hover:bg-gray-300"
           style={{ touchAction: "none" }}
           {...attributes}
           {...listeners}

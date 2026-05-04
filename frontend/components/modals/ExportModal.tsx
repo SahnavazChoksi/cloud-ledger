@@ -1,10 +1,11 @@
-/**CloudLedger\frontend\components\modals\ExportModal.tsx*/
+/*CloudLedger\frontend\components\modals\ExportModal.tsx*/
 
 "use client";
 
 import { useEffect, useState } from "react";
 import ModalShell from "./ModalShell";
 import { ExportModalState } from "@/types";
+import { DEFAULT_EXPORT_MODAL } from "@/components/constants/modalDefaults";
 
 export default function ExportModal({
   open,
@@ -17,19 +18,13 @@ export default function ExportModal({
   onExport: (fileName: string, format: "xlsx" | "pdf") => void;
   defaultFileName: string;
 }) {
-  const [state, setState] = useState<ExportModalState>({
-    fileName: defaultFileName,
-    format: "xlsx",
-    error: "",
-  });
+  const [state, setState] = useState<ExportModalState>(
+    DEFAULT_EXPORT_MODAL(defaultFileName),
+  );
 
   useEffect(() => {
     if (!open) return;
-    setState({
-      fileName: defaultFileName,
-      format: "xlsx",
-      error: "",
-    });
+    setState(DEFAULT_EXPORT_MODAL(defaultFileName));
   }, [open, defaultFileName]);
 
   if (!open) return null;
@@ -51,7 +46,7 @@ export default function ExportModal({
             onChange={(e) =>
               setState((p) => ({ ...p, fileName: e.target.value, error: "" }))
             }
-            className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+            className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black text-black"
           />
           <p className="text-xs text-gray-500 mt-1">
             You can change this before saving.
@@ -71,7 +66,7 @@ export default function ExportModal({
                 error: "",
               }))
             }
-            className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black"
+            className="w-full border rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-black text-black"
           >
             <option value="xlsx">Excel (.xlsx)</option>
             <option value="pdf">PDF (.pdf)</option>

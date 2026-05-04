@@ -1,4 +1,4 @@
-/**CloudLedger\frontend\components\modals\DeleteSheetModal.tsx */
+/*CloudLedger\frontend\components\modals\DeleteSheetModal.tsx */
 
 "use client";
 

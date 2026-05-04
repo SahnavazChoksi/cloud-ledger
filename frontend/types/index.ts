@@ -1,9 +1,19 @@
 /*CloudLedger\frontend\types\index.ts */
+export type ColumnType = "text" | "number" | "date" | "formula";
+
+export type FormulaKind = "line" | "running" | "summary";
+
+export type FormulaOperation =
+  | "add"
+  | "subtract"
+  | "multiply"
+  | "divide"
+  | "sum";
 
 export type Column = {
   id: string;
   name: string;
-  type: "text" | "number" | "date" | "formula";
+  type: ColumnType;
 };
 
 export type Row = {
@@ -14,8 +24,8 @@ export type Row = {
 export type Formula = {
   id: string;
   name: string;
-  kind: "line" | "running" | "summary";
-  operation: "add" | "subtract" | "multiply" | "divide" | "sum";
+  kind: FormulaKind;
+  operation: FormulaOperation;
   sourceColumnId: string;
   sourceColumnId2?: string;
   targetColumnId?: string;
@@ -31,8 +41,8 @@ export type Sheet = {
 
 export type FormulaModalState = {
   name: string;
-  kind: "line" | "running" | "summary";
-  operation: "add" | "subtract" | "multiply" | "divide" | "sum";
+  kind: FormulaKind;
+  operation: FormulaOperation;
   sourceColumnId: string;
   sourceColumnId2: string;
   error: string;
