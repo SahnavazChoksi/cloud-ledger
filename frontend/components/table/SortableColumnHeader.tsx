@@ -76,7 +76,7 @@ export default function SortableColumnHeader({
         >
           ×
         </button>
-      </div>
+      
     </th>
   );
 }
