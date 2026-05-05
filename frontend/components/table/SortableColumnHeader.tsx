@@ -43,16 +43,16 @@ export default function SortableColumnHeader({
       style={style}
       className="whitespace-nowrap border-b bg-gray-100 px-2 py-3 text-left md:px-4"
     >
-      <div className="flex items-center gap-2">
-        <button
-          ref={setActivatorNodeRef}
-          type="button"
-          className="rounded bg-gray-500 px-2 py-2 text-white hover:bg-gray-400"
-          {...attributes}
-          {...listeners}
-        >
-          ☰
-        </button>
+      <button
+  ref={setActivatorNodeRef}
+  type="button"
+  className="touch-none select-none rounded bg-gray-500 px-3 py-2 text-white hover:bg-gray-400"
+  style={{ touchAction: "none" }}
+  {...attributes}
+  {...listeners}
+>
+  ☰
+</button>
 
         <button
           type="button"
