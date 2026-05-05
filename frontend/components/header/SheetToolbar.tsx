@@ -1,5 +1,8 @@
+/**CloudLedger\frontend\components\header\SheetToolbar.tsx */
+
 "use client";
 import Button from "@/components/ui/Button";
+import { logOut } from "@/lib/auth";
 
 export default function SheetToolbar({
   onAddColumn,
@@ -13,7 +16,7 @@ export default function SheetToolbar({
   onExport: () => void;
 }) {
   return (
-    <div className="flex gap-2 flex-wrap">
+    <div className="flex flex-wrap gap-2">
       <Button onClick={onAddColumn}>
   + Add Column
 </Button>
@@ -29,6 +32,7 @@ export default function SheetToolbar({
       <Button onClick={onExport}>
   Export
 </Button>
+
     </div>
   );
 }

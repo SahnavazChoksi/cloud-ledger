@@ -3,7 +3,6 @@
 "use client";
 
 import { Column } from "@/types";
-
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -11,7 +10,7 @@ export default function SortableColumnHeader({
   column,
   onDelete,
   onSort,
-  sortConfig
+  sortConfig,
 }: {
   column: Column;
   onDelete: (columnId: string) => void;
@@ -42,41 +41,42 @@ export default function SortableColumnHeader({
     <th
       ref={setNodeRef}
       style={style}
-      className="text-white text-left px-4 py-3 whitespace-nowrap bg-gray-100 border-b"
+      className="whitespace-nowrap border-b bg-gray-100 px-2 py-3 text-left md:px-4"
     >
       <div className="flex items-center gap-2">
-  <button
-    ref={setActivatorNodeRef}
-    type="button"
-    className="cursor-grab px-3 py-3 rounded bg-gray-500 hover:bg-gray-300"
-    {...attributes}
-    {...listeners}
-  >
-    ☰
-  </button>
+        <button
+          ref={setActivatorNodeRef}
+          type="button"
+          className="rounded bg-gray-500 px-2 py-2 text-white hover:bg-gray-400"
+          {...attributes}
+          {...listeners}
+        >
+          ☰
+        </button>
 
-  <div
-  onClick={() => onSort(column.id)}
-  className="font-semibold text-black cursor-pointer flex items-center gap-1"
->
-  {column.name}
+        <button
+          type="button"
+          onClick={() => onSort(column.id)}
+          className="flex items-center gap-1 text-left font-semibold text-black"
+        >
+          <span className="max-w-[110px] truncate md:max-w-none">{column.name}</span>
+          {sortConfig?.columnId === column.id ? (
+            <span className="text-xs text-black">
+              {sortConfig.direction === "asc" ? "↑" : "↓"}
+            </span>
+          ) : (
+            <span className="text-xs text-gray-400">⇅</span>
+          )}
+        </button>
 
-  {sortConfig?.columnId === column.id ? (
-    <span className="text-xs text-black">
-      {sortConfig.direction === "asc" ? "↑" : "↓"}
-    </span>
-  ) : (
-    <span className="text-gray-400 text-xs">⇅</span>
-  )}
-</div>
-
-  <button
-    onClick={() => onDelete(column.id)}
-    className="ml-auto px-2 py-1 rounded bg-red-500 text-white"
-  >
-    ×
-  </button>
-</div>
+        <button
+          type="button"
+          onClick={() => onDelete(column.id)}
+          className="ml-auto rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600"
+        >
+          ×
+        </button>
+      </div>
     </th>
   );
 }
