@@ -25,24 +25,9 @@ function normalizeSheet(id: string, data: Partial<Sheet> & Record<string, unknow
 
 export async function getUserSheets(uid: string): Promise<Sheet[]> {
   const ref = collection(db, "users", uid, "sheets");
+  const snapshot = await getDocs(ref);
 
-  try {
-    const orderedSnapshot = await getDocs(query(ref, orderBy("updatedAt", "desc")));
-
-    const sheets = orderedSnapshot.docs.map((docSnap) =>
-      normalizeSheet(docSnap.id, docSnap.data() as Partial<Sheet> & Record<string, unknown>),
-    );
-
-    if (sheets.length > 0) {
-      return sheets;
-    }
-  } catch (error) {
-    console.warn("Falling back to unordered sheet fetch:", error);
-  }
-
-  const fallbackSnapshot = await getDocs(ref);
-
-  return fallbackSnapshot.docs.map((docSnap) =>
+  return snapshot.docs.map((docSnap) =>
     normalizeSheet(docSnap.id, docSnap.data() as Partial<Sheet> & Record<string, unknown>),
   );
 }
@@ -51,17 +36,30 @@ export async function saveUserSheet(uid: string, sheet: Sheet) {
   const cleanSheet = {
     id: sheet.id,
     name: sheet.name || "Untitled Sheet",
-    columns: Array.isArray(sheet.columns) ? sheet.columns : [],
-    rows: Array.isArray(sheet.rows) ? sheet.rows : [],
-    formulas: Array.isArray(sheet.formulas) ? sheet.formulas : [],
+    columns: (sheet.columns || []).map((column) => ({
+      id: column.id,
+      name: column.name,
+      type: column.type,
+    })),
+    rows: (sheet.rows || []).map((row) => ({
+      id: row.id,
+      values: row.values || {},
+    })),
+    formulas: (sheet.formulas || []).map((formula) => ({
+      id: formula.id,
+      name: formula.name,
+      kind: formula.kind,
+      operation: formula.operation,
+      sourceColumnId: formula.sourceColumnId,
+      ...(formula.sourceColumnId2 ? { sourceColumnId2: formula.sourceColumnId2 } : {}),
+      ...(formula.targetColumnId ? { targetColumnId: formula.targetColumnId } : {}),
+    })),
     updatedAt: serverTimestamp(),
   };
 
-  await setDoc(
-    doc(db, "users", uid, "sheets", sheet.id),
-    cleanSheet,
-    { merge: true },
-  );
+  await setDoc(doc(db, "users", uid, "sheets", sheet.id), cleanSheet, {
+    merge: true,
+  });
 }
 
 export async function deleteUserSheet(uid: string, sheetId: string) {

@@ -1,15 +1,19 @@
+/**CloudLedger\frontend\utils\summary.ts */
+
 import { Sheet } from "@/types";
 import { toNumber } from "@/utils/formula";
 
 export function getSheetSummaryItems(sheet: Sheet) {
-  return sheet.formulas
-    .filter((formula) => formula.kind === "summary")
-    .map((formula) => ({
-      id: formula.id,
-      name: formula.name,
-      value: sheet.rows.reduce(
-        (sum, row) => sum + toNumber(row.values[formula.sourceColumnId]),
-        0,
-      ),
-    }));
+  const summaryFormulas = (sheet.formulas || []).filter(
+    (formula) => formula.kind === "summary",
+  );
+
+  return summaryFormulas.map((formula) => ({
+    id: formula.id,
+    name: formula.name || "Summary",
+    value: sheet.rows.reduce(
+      (sum, row) => sum + toNumber(row.values[formula.sourceColumnId]),
+      0,
+    ),
+  }));
 }

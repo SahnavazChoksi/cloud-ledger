@@ -83,48 +83,44 @@ export function useSheetActions({
   };
 
   const addFormula = (data: {
-    name: string;
-    kind: "line" | "running" | "summary";
-    operation: "add" | "subtract" | "multiply" | "divide" | "sum";
-    sourceColumnId: string;
-    sourceColumnId2?: string;
-  }) => {
-    if (!activeSheet) return;
-
-    const newFormula: Formula = {
-      id: generateId(),
-      name: data.name,
-      kind: data.kind,
-      operation: data.operation,
-      sourceColumnId: data.sourceColumnId,
-      sourceColumnId2: data.sourceColumnId2,
-      targetColumnId:
-        data.kind === "summary" ? undefined : generateId(),
-    };
-
-    setSheets((prev) =>
-      prev.map((sheet) =>
-        sheet.id !== activeSheetId
-          ? sheet
-          : {
-              ...sheet,
-              columns:
-                data.kind === "summary"
-                  ? sheet.columns
-                  : [
-                      ...sheet.columns,
-                      {
-                        id: newFormula.targetColumnId as string,
-                        name: data.name,
-                        type: "formula",
-                      },
-                    ],
-              formulas: [...sheet.formulas, newFormula],
-            },
-      ),
-    );
+  name: string;
+  kind: "line" | "running" | "summary";
+  operation: "add" | "subtract" | "multiply" | "divide" | "sum";
+  sourceColumnId: string;
+  sourceColumnId2?: string;
+}) => {
+  const newFormula: Formula = {
+    id: generateId(),
+    name: data.name,
+    kind: data.kind,
+    operation: data.operation,
+    sourceColumnId: data.sourceColumnId,
+    ...(data.sourceColumnId2 ? { sourceColumnId2: data.sourceColumnId2 } : {}),
+    ...(data.kind !== "summary" ? { targetColumnId: generateId() } : {}),
   };
 
+  setSheets((prev) =>
+    prev.map((sheet) => {
+      if (sheet.id !== activeSheetId) return sheet;
+
+      return {
+        ...sheet,
+        columns:
+          data.kind === "summary"
+            ? sheet.columns
+            : [
+                ...sheet.columns,
+                {
+                  id: newFormula.targetColumnId as string,
+                  name: data.name,
+                  type: "formula",
+                },
+              ],
+        formulas: [...(sheet.formulas || []), newFormula],
+      };
+    }),
+  );
+};
   const addRow = () => {
     if (!activeSheet) return;
 
@@ -151,11 +147,7 @@ export function useSheetActions({
     );
   };
 
-  const updateCell = (
-    rowId: string,
-    columnId: string,
-    value: string,
-  ) => {
+  const updateCell = (rowId: string, columnId: string, value: string) => {
     setSheets((prev) =>
       prev.map((sheet) => {
         if (sheet.id !== activeSheetId) return sheet;
@@ -170,8 +162,7 @@ export function useSheetActions({
                   values: {
                     ...row.values,
                     [columnId]:
-                      sheet.columns.find((c) => c.id === columnId)?.type ===
-                      "number"
+                      sheet.columns.find((c) => c.id === columnId)?.type === "number"
                         ? value === ""
                           ? ""
                           : Number(value)
@@ -228,62 +219,61 @@ export function useSheetActions({
   };
 
   const moveColumn = (columnId: string, direction: "up" | "down") => {
-  if (!activeSheet) return;
+    if (!activeSheet) return;
 
-  setSheets((prev) =>
-    prev.map((sheet) => {
-      if (sheet.id !== activeSheetId) return sheet;
+    setSheets((prev) =>
+      prev.map((sheet) => {
+        if (sheet.id !== activeSheetId) return sheet;
 
-      const editableColumns = sheet.columns.filter((c) => c.type !== "formula");
-      const currentIndex = editableColumns.findIndex((c) => c.id === columnId);
-      if (currentIndex === -1) return sheet;
+        const editableColumns = sheet.columns.filter((c) => c.type !== "formula");
+        const currentIndex = editableColumns.findIndex((c) => c.id === columnId);
+        if (currentIndex === -1) return sheet;
 
-      const targetIndex =
-        direction === "up" ? currentIndex - 1 : currentIndex + 1;
+        const targetIndex =
+          direction === "up" ? currentIndex - 1 : currentIndex + 1;
 
-      if (targetIndex < 0 || targetIndex >= editableColumns.length) return sheet;
+        if (targetIndex < 0 || targetIndex >= editableColumns.length) return sheet;
 
-      const reorderedEditable = [...editableColumns];
-      [reorderedEditable[currentIndex], reorderedEditable[targetIndex]] = [
-        reorderedEditable[targetIndex],
-        reorderedEditable[currentIndex],
-      ];
+        const reorderedEditable = [...editableColumns];
+        [reorderedEditable[currentIndex], reorderedEditable[targetIndex]] = [
+          reorderedEditable[targetIndex],
+          reorderedEditable[currentIndex],
+        ];
 
-      const formulaColumns = sheet.columns.filter((c) => c.type === "formula");
-      return {
-        ...sheet,
-        columns: [...reorderedEditable, ...formulaColumns],
-      };
-    }),
-  );
-};
+        const formulaColumns = sheet.columns.filter((c) => c.type === "formula");
 
-const renameFormula = (formulaId: string, name: string) => {
-  const cleanName = name.trim();
-  if (!cleanName) return;
+        return {
+          ...sheet,
+          columns: [...reorderedEditable, ...formulaColumns],
+        };
+      }),
+    );
+  };
 
-  setSheets((prev) =>
-    prev.map((sheet) => {
-      if (sheet.id !== activeSheetId) return sheet;
+  const renameFormula = (formulaId: string, name: string) => {
+    const cleanName = name.trim();
+    if (!cleanName) return;
 
-      const targetFormula = sheet.formulas.find((formula) => formula.id === formulaId);
+    setSheets((prev) =>
+      prev.map((sheet) => {
+        if (sheet.id !== activeSheetId) return sheet;
 
-      return {
-        ...sheet,
-        formulas: sheet.formulas.map((formula) =>
-          formula.id === formulaId
-            ? { ...formula, name: cleanName }
-            : formula,
-        ),
-        columns: sheet.columns.map((column) =>
-          targetFormula?.targetColumnId && column.id === targetFormula.targetColumnId
-            ? { ...column, name: cleanName }
-            : column,
-        ),
-      };
-    }),
-  );
-};
+        const targetFormula = sheet.formulas.find((formula) => formula.id === formulaId);
+
+        return {
+          ...sheet,
+          formulas: sheet.formulas.map((formula) =>
+            formula.id === formulaId ? { ...formula, name: cleanName } : formula,
+          ),
+          columns: sheet.columns.map((column) =>
+            targetFormula?.targetColumnId && column.id === targetFormula.targetColumnId
+              ? { ...column, name: cleanName }
+              : column,
+          ),
+        };
+      }),
+    );
+  };
 
   return {
     createSheet,

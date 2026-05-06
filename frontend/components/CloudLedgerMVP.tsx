@@ -1,10 +1,10 @@
 /*CloudLedger\frontend\components\CloudLedgerMVP.tsx */
 
 "use client";
-import { useMemo } from "react";
+
+import { useEffect, useRef, useState } from "react";
 import { useUndoRedo } from "@/hooks/useUndoRedo";
 import ManageColumnsModal from "@/components/modals/ManageColumnsModal";
-import { useEffect, useRef, useState } from "react";
 import { Sheet } from "@/types";
 import { exportActiveSheet } from "@/utils/export";
 import CreateSheetModal from "@/components/modals/CreateSheetModal";
@@ -25,34 +25,35 @@ import { getUserSheets, saveUserSheet, deleteUserSheet } from "@/lib/firestore";
 
 export default function CloudLedgerMVP() {
   const history = useUndoRedo<{ sheets: Sheet[]; activeSheetId: string }>({
-  sheets: [],
-  activeSheetId: "",
-});
+    sheets: [],
+    activeSheetId: "",
+  });
 
-const sheets = history.present.sheets;
-const activeSheetId = history.present.activeSheetId;
+  const sheets = history.present.sheets;
+  const activeSheetId = history.present.activeSheetId;
 
-const setSheets: React.Dispatch<React.SetStateAction<Sheet[]>> = (updater) => {
-  history.set((current) => ({
-    ...current,
-    sheets:
-      typeof updater === "function"
-        ? (updater as (prev: Sheet[]) => Sheet[])(current.sheets)
-        : updater,
-  }));
-};
+  const setSheets: React.Dispatch<React.SetStateAction<Sheet[]>> = (updater) => {
+    history.set((current) => ({
+      ...current,
+      sheets:
+        typeof updater === "function"
+          ? (updater as (prev: Sheet[]) => Sheet[])(current.sheets)
+          : updater,
+    }));
+  };
 
-const setActiveSheetId: React.Dispatch<React.SetStateAction<string>> = (
-  updater,
-) => {
-  history.set((current) => ({
-    ...current,
-    activeSheetId:
-      typeof updater === "function"
-        ? (updater as (prev: string) => string)(current.activeSheetId)
-        : updater,
-  }));
-};
+  const setActiveSheetId: React.Dispatch<React.SetStateAction<string>> = (
+    updater,
+  ) => {
+    history.set((current) => ({
+      ...current,
+      activeSheetId:
+        typeof updater === "function"
+          ? (updater as (prev: string) => string)(current.activeSheetId)
+          : updater,
+    }));
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
   const [sortConfig, setSortConfig] = useState<{
     columnId: string;
@@ -67,7 +68,8 @@ const setActiveSheetId: React.Dispatch<React.SetStateAction<string>> = (
   const [isLoaded, setIsLoaded] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
-const hasHydratedRef = useRef(false);
+  const hasHydratedRef = useRef(false);
+
   const { user, loading } = useAuth();
 
   const activeSheet = sheets.find((sheet) => sheet.id === activeSheetId);
@@ -120,84 +122,89 @@ const hasHydratedRef = useRef(false);
 
   const renameSheet = (name: string) => {
     setSheets((prev) =>
-      prev.map((sheet) =>
-        sheet.id === activeSheetId ? { ...sheet, name } : sheet
-      )
+      prev.map((sheet) => (sheet.id === activeSheetId ? { ...sheet, name } : sheet)),
     );
   };
 
   const handleSort = (columnId: string) => {
-  setSortConfig((prev) => {
-    if (!prev || prev.columnId !== columnId) {
-      return { columnId, direction: "asc" };
-    }
+    setSortConfig((prev) => {
+      if (!prev || prev.columnId !== columnId) {
+        return { columnId, direction: "asc" };
+      }
 
-    if (prev.direction === "asc") {
-      return { columnId, direction: "desc" };
-    }
+      if (prev.direction === "asc") {
+        return { columnId, direction: "desc" };
+      }
 
-    return null;
-  });
-};
+      return null;
+    });
+  };
 
   useEffect(() => {
-  async function loadData() {
-    if (loading) return;
+    async function loadData() {
+      if (loading) return;
 
-    if (!user) {
-      history.set({
-        sheets: [],
-        activeSheetId: "",
-      });
+      if (!user) {
+        history.set({
+          sheets: [],
+          activeSheetId: "",
+        });
+        setIsLoaded(true);
+        return;
+      }
+
+      const uid = user.uid;
+      const cloudSheets = await getUserSheets(uid);
+      const normalizedSheets = cloudSheets.map((sheet) => ({
+        ...sheet,
+        columns: Array.isArray(sheet.columns) ? sheet.columns : [],
+        rows: Array.isArray(sheet.rows) ? sheet.rows : [],
+        formulas: Array.isArray(sheet.formulas) ? sheet.formulas : [],
+      }));
+
+      if (normalizedSheets.length > 0) {
+        history.set({
+          sheets: normalizedSheets,
+          activeSheetId: normalizedSheets[0].id,
+        });
+      } else {
+        history.set({
+          sheets: [],
+          activeSheetId: "",
+        });
+      }
+
       setIsLoaded(true);
-      return;
     }
 
-    const cloudSheets = await getUserSheets(user.uid);
-
-    const normalizedSheets = cloudSheets.map((sheet) => ({
-      ...sheet,
-      columns: Array.isArray(sheet.columns) ? sheet.columns : [],
-      rows: Array.isArray(sheet.rows) ? sheet.rows : [],
-      formulas: Array.isArray(sheet.formulas) ? sheet.formulas : [],
-    }));
-
-    if (normalizedSheets.length > 0) {
-      history.set({
-        sheets: normalizedSheets,
-        activeSheetId: normalizedSheets[0].id,
-      });
-    } else {
-      history.set({
-        sheets: [],
-        activeSheetId: "",
-      });
-    }
-
-    setIsLoaded(true);
-  }
-
-  loadData();
-}, [user, loading]);
+    loadData();
+  }, [user, loading]);
 
  useEffect(() => {
   if (!isLoaded || !user) return;
+
+  const uid = user.uid;
 
   if (!hasHydratedRef.current) {
     hasHydratedRef.current = true;
     return;
   }
 
-  async function persist() {
-    await Promise.all(sheets.map((sheet) => saveUserSheet(user.uid, sheet)));
-  }
+  const persist = async () => {
+    try {
+      await Promise.all(sheets.map((sheet) => saveUserSheet(uid, sheet)));
+      
+    } catch (error) {
+      console.error("Failed to save sheets", error);
+    }
+  };
 
   persist();
 }, [sheets, user, isLoaded]);
 
-useEffect(() => {
-  hasHydratedRef.current = false;
-}, [user?.uid]);
+  useEffect(() => {
+    hasHydratedRef.current = false;
+  }, [user?.uid]);
 
   const defaultExportName = `${activeSheet?.name || "Sheet"}_${formatDateTimeForFileName()}`;
 
@@ -207,8 +214,8 @@ useEffect(() => {
         rows: [...activeSheet.rows]
           .filter((row) =>
             Object.values(row.values).some((value) =>
-              String(value).toLowerCase().includes(searchQuery.toLowerCase())
-            )
+              String(value).toLowerCase().includes(searchQuery.toLowerCase()),
+            ),
           )
           .sort((a, b) => {
             if (!sortConfig) return 0;
@@ -229,13 +236,14 @@ useEffect(() => {
 
   return (
     <div className="h-dvh overflow-hidden bg-gray-100">
-<AppHeader
-  onOpenSidebar={() => setSidebarOpen(true)}
-  onUndo={history.undo}
-  onRedo={history.redo}
-  canUndo={history.canUndo}
-  canRedo={history.canRedo}
-/>
+      <AppHeader
+        onOpenSidebar={() => setSidebarOpen(true)}
+        onUndo={history.undo}
+        onRedo={history.redo}
+        canUndo={history.canUndo}
+        canRedo={history.canRedo}
+      />
+
       <div className="flex h-[calc(100dvh-65px)] overflow-hidden">
         <SheetSidebar
           sheets={sheets}
@@ -248,11 +256,11 @@ useEffect(() => {
         />
 
         <main
-  className="min-w-0 flex-1 overflow-y-auto p-3 md:p-6"
-  style={{
-    paddingBottom: "calc(6rem + env(safe-area-inset-bottom, 0px))",
-  }}
->
+          className="min-w-0 flex-1 overflow-y-auto p-3 md:p-6"
+          style={{
+            paddingBottom: "calc(6rem + env(safe-area-inset-bottom, 0px))",
+          }}
+        >
           {!activeSheet ? (
             <div className="rounded-2xl border bg-white p-6 text-center shadow-sm md:p-8">
               <h2 className="text-xl font-bold text-black md:text-2xl">No sheets yet</h2>
@@ -282,13 +290,14 @@ useEffect(() => {
                     onAddRow={addRow}
                     onExport={() => setExportModalOpen(true)}
                   />
+
                   <button
-  type="button"
-  onClick={() => setManageColumnsOpen(true)}
-  className="rounded-xl border px-4 py-2 text-sm font-medium text-black md:hidden"
->
-  Manage Columns
-</button>
+                    type="button"
+                    onClick={() => setManageColumnsOpen(true)}
+                    className="rounded-xl border px-4 py-2 text-sm font-medium text-black md:hidden"
+                  >
+                    Manage Columns
+                  </button>
                 </div>
 
                 <input
@@ -312,10 +321,7 @@ useEffect(() => {
                 sortConfig={sortConfig}
               />
 
-              <SheetSummary
-  activeSheet={activeSheet}
-  onRenameSummary={renameFormula}
-/>
+              <SheetSummary activeSheet={activeSheet} onRenameSummary={renameFormula} />
             </div>
           )}
         </main>
@@ -360,31 +366,33 @@ useEffect(() => {
         }}
         columns={activeSheet?.columns || []}
       />
-<ManageColumnsModal
-  open={manageColumnsOpen}
-  onClose={() => setManageColumnsOpen(false)}
-  columns={activeSheet?.columns || []}
-  onMoveUp={(columnId) => moveColumn(columnId, "up")}
-  onMoveDown={(columnId) => moveColumn(columnId, "down")}
-  onDeleteColumn={deleteColumn}
-/>
+
+      <ManageColumnsModal
+        open={manageColumnsOpen}
+        onClose={() => setManageColumnsOpen(false)}
+        columns={activeSheet?.columns || []}
+        onMoveUp={(columnId) => moveColumn(columnId, "up")}
+        onMoveDown={(columnId) => moveColumn(columnId, "down")}
+        onDeleteColumn={deleteColumn}
+      />
+
       <ExportModal
-  open={exportModalOpen}
-  onClose={() => setExportModalOpen(false)}
-  defaultFileName={defaultExportName}
-  onExport={async ({ fileName, format, includeSummary }) => {
-    if (!activeSheet) return;
+        open={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        defaultFileName={defaultExportName}
+        onExport={async ({ fileName, format, includeSummary }) => {
+          if (!activeSheet) return;
 
-    await exportActiveSheet({
-      activeSheet,
-      fileName,
-      format,
-      includeSummary,
-    });
+          await exportActiveSheet({
+            activeSheet,
+            fileName,
+            format,
+            includeSummary,
+          });
 
-    setExportModalOpen(false);
-  }}
-/>
+          setExportModalOpen(false);
+        }}
+      />
     </div>
   );
 }
