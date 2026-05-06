@@ -18,7 +18,7 @@ export default function SheetSummary({
   if (!summaryItems.length) return null;
 
   return (
-    <div className="border-t bg-gray-50 p-4">
+    <div className="border-t bg-gray-50 p-4 pb-8">
       <div className="mb-3 font-semibold text-black">Summary</div>
 
       <div className="grid gap-3">

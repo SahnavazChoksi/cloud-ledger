@@ -237,7 +237,12 @@ const setActiveSheetId: React.Dispatch<React.SetStateAction<string>> = (
           onClose={() => setSidebarOpen(false)}
         />
 
-        <main className="min-w-0 flex-1 overflow-y-auto p-3 md:p-6">
+        <main
+  className="min-w-0 flex-1 overflow-y-auto p-3 md:p-6"
+  style={{
+    paddingBottom: "calc(6rem + env(safe-area-inset-bottom, 0px))",
+  }}
+>
           {!activeSheet ? (
             <div className="rounded-2xl border bg-white p-6 text-center shadow-sm md:p-8">
               <h2 className="text-xl font-bold text-black md:text-2xl">No sheets yet</h2>
