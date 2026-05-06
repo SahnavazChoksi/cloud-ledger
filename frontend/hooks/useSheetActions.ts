@@ -274,7 +274,43 @@ export function useSheetActions({
       }),
     );
   };
+const deleteFormula = (formulaId: string) => {
+  setSheets((prev) =>
+    prev.map((sheet) => {
+      if (sheet.id !== activeSheetId) return sheet;
 
+      const formulaToDelete = sheet.formulas.find((formula) => formula.id === formulaId);
+
+      return {
+        ...sheet,
+        formulas: sheet.formulas.filter((formula) => formula.id !== formulaId),
+        columns: formulaToDelete?.targetColumnId
+          ? sheet.columns.filter((column) => column.id !== formulaToDelete.targetColumnId)
+          : sheet.columns,
+      };
+    }),
+  );
+};
+
+const deleteAllSummaryFormulas = () => {
+  setSheets((prev) =>
+    prev.map((sheet) => {
+      if (sheet.id !== activeSheetId) return sheet;
+
+      const summaryTargetColumnIds = new Set(
+        sheet.formulas
+          .filter((formula) => formula.kind === "summary" && formula.targetColumnId)
+          .map((formula) => formula.targetColumnId as string),
+      );
+
+      return {
+        ...sheet,
+        formulas: sheet.formulas.filter((formula) => formula.kind !== "summary"),
+        columns: sheet.columns.filter((column) => !summaryTargetColumnIds.has(column.id)),
+      };
+    }),
+  );
+};
   return {
     createSheet,
     openDeleteSheetModal,
@@ -287,5 +323,7 @@ export function useSheetActions({
     deleteColumn,
     moveColumn,
     renameFormula,
+    deleteFormula,
+  deleteAllSummaryFormulas,
   };
 }

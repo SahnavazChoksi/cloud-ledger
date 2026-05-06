@@ -92,6 +92,8 @@ export default function CloudLedgerMVP() {
     deleteColumn,
     moveColumn,
     renameFormula,
+    deleteFormula,
+  deleteAllSummaryFormulas,
   } = useSheetActions({
     sheets,
     setSheets,
@@ -321,7 +323,12 @@ export default function CloudLedgerMVP() {
                 sortConfig={sortConfig}
               />
 
-              <SheetSummary activeSheet={activeSheet} onRenameSummary={renameFormula} />
+              <SheetSummary
+  activeSheet={activeSheet}
+  onRenameSummary={renameFormula}
+  onDeleteSummary={deleteFormula}
+  onDeleteAllSummaries={deleteAllSummaryFormulas}
+/>
             </div>
           )}
         </main>
