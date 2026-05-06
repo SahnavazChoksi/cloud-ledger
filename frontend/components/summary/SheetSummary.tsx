@@ -3,32 +3,48 @@
 "use client";
 
 import { Sheet } from "@/types";
-import { toNumber } from "@/utils/formula";
+import { getSheetSummaryItems } from "@/utils/summary";
 
-export default function SheetSummary({ activeSheet }: { activeSheet?: Sheet }) {
+export default function SheetSummary({
+  activeSheet,
+  onRenameSummary,
+}: {
+  activeSheet?: Sheet;
+  onRenameSummary: (formulaId: string, name: string) => void;
+}) {
   if (!activeSheet) return null;
 
-  const summaryFormulas = activeSheet.formulas.filter(
-    (f) => f.kind === "summary",
-  );
-  if (!summaryFormulas.length) return null;
+  const summaryItems = getSheetSummaryItems(activeSheet);
+  if (!summaryItems.length) return null;
 
   return (
     <div className="border-t bg-gray-50 p-4">
-      <div className="font-semibold text-black mb-2">Summary</div>
-      <div className="space-y-1 text-black">
-        {summaryFormulas.map((formula) => {
-          const value = activeSheet.rows.reduce(
-            (sum, row) => sum + toNumber(row.values[formula.sourceColumnId]),
-            0,
-          );
+      <div className="mb-3 font-semibold text-black">Summary</div>
 
-          return (
-            <div key={formula.id}>
-              {formula.name}: {value}
+      <div className="grid gap-3">
+        {summaryItems.map((item) => (
+          <div
+            key={item.id}
+            className="rounded-xl border bg-white p-4 shadow-sm"
+          >
+            <div className="flex flex-col gap-3">
+              <input
+                value={item.name}
+                onChange={(e) => onRenameSummary(item.id, e.target.value)}
+                className="w-full rounded-lg border px-3 py-2 text-sm font-medium text-black outline-none focus:ring-2 focus:ring-black"
+              />
+
+              <div className="rounded-lg bg-gray-50 px-3 py-3">
+                <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Total
+                </div>
+                <div className="mt-1 break-words text-2xl font-bold text-black">
+                  {item.value}
+                </div>
+              </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );

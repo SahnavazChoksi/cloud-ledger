@@ -1,3 +1,5 @@
+/**CloudLedger\frontend\hooks\useSheetActions.ts */
+
 "use client";
 
 import { Column, Formula, Row, Sheet } from "@/types";
@@ -225,6 +227,64 @@ export function useSheetActions({
     );
   };
 
+  const moveColumn = (columnId: string, direction: "up" | "down") => {
+  if (!activeSheet) return;
+
+  setSheets((prev) =>
+    prev.map((sheet) => {
+      if (sheet.id !== activeSheetId) return sheet;
+
+      const editableColumns = sheet.columns.filter((c) => c.type !== "formula");
+      const currentIndex = editableColumns.findIndex((c) => c.id === columnId);
+      if (currentIndex === -1) return sheet;
+
+      const targetIndex =
+        direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+      if (targetIndex < 0 || targetIndex >= editableColumns.length) return sheet;
+
+      const reorderedEditable = [...editableColumns];
+      [reorderedEditable[currentIndex], reorderedEditable[targetIndex]] = [
+        reorderedEditable[targetIndex],
+        reorderedEditable[currentIndex],
+      ];
+
+      const formulaColumns = sheet.columns.filter((c) => c.type === "formula");
+      return {
+        ...sheet,
+        columns: [...reorderedEditable, ...formulaColumns],
+      };
+    }),
+  );
+};
+
+const renameFormula = (formulaId: string, name: string) => {
+  const cleanName = name.trim();
+  if (!cleanName) return;
+
+  setSheets((prev) =>
+    prev.map((sheet) => {
+      if (sheet.id !== activeSheetId) return sheet;
+
+      const targetFormula = sheet.formulas.find((formula) => formula.id === formulaId);
+
+      return {
+        ...sheet,
+        formulas: sheet.formulas.map((formula) =>
+          formula.id === formulaId
+            ? { ...formula, name: cleanName }
+            : formula,
+        ),
+        columns: sheet.columns.map((column) =>
+          targetFormula?.targetColumnId && column.id === targetFormula.targetColumnId
+            ? { ...column, name: cleanName }
+            : column,
+        ),
+      };
+    }),
+  );
+};
+
   return {
     createSheet,
     openDeleteSheetModal,
@@ -235,5 +295,7 @@ export function useSheetActions({
     updateCell,
     deleteRow,
     deleteColumn,
+    moveColumn,
+    renameFormula,
   };
 }

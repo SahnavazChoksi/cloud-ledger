@@ -1,7 +1,9 @@
 /*CloudLedger\frontend\components\CloudLedgerMVP.tsx */
 
 "use client";
-
+import { useMemo } from "react";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
+import ManageColumnsModal from "@/components/modals/ManageColumnsModal";
 import { useEffect, useState } from "react";
 import { Sheet } from "@/types";
 import { exportActiveSheet } from "@/utils/export";
@@ -22,13 +24,40 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { getUserSheets, saveUserSheet, deleteUserSheet } from "@/lib/firestore";
 
 export default function CloudLedgerMVP() {
-  const [sheets, setSheets] = useState<Sheet[]>([]);
+  const history = useUndoRedo<{ sheets: Sheet[]; activeSheetId: string }>({
+  sheets: [],
+  activeSheetId: "",
+});
+
+const sheets = history.present.sheets;
+const activeSheetId = history.present.activeSheetId;
+
+const setSheets: React.Dispatch<React.SetStateAction<Sheet[]>> = (updater) => {
+  history.set((current) => ({
+    ...current,
+    sheets:
+      typeof updater === "function"
+        ? (updater as (prev: Sheet[]) => Sheet[])(current.sheets)
+        : updater,
+  }));
+};
+
+const setActiveSheetId: React.Dispatch<React.SetStateAction<string>> = (
+  updater,
+) => {
+  history.set((current) => ({
+    ...current,
+    activeSheetId:
+      typeof updater === "function"
+        ? (updater as (prev: string) => string)(current.activeSheetId)
+        : updater,
+  }));
+};
   const [searchQuery, setSearchQuery] = useState("");
   const [sortConfig, setSortConfig] = useState<{
     columnId: string;
     direction: "asc" | "desc";
   } | null>(null);
-  const [activeSheetId, setActiveSheetId] = useState("");
   const [createSheetModalOpen, setCreateSheetModalOpen] = useState(false);
   const [formulaModalOpen, setFormulaModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -37,6 +66,7 @@ export default function CloudLedgerMVP() {
   const [deleteSheetModalOpen, setDeleteSheetModalOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
 
   const { user, loading } = useAuth();
 
@@ -58,6 +88,8 @@ export default function CloudLedgerMVP() {
     updateCell,
     deleteRow,
     deleteColumn,
+    moveColumn,
+    renameFormula,
   } = useSheetActions({
     sheets,
     setSheets,
@@ -109,31 +141,44 @@ export default function CloudLedgerMVP() {
 };
 
   useEffect(() => {
-    async function loadData() {
-      if (loading) return;
+  async function loadData() {
+    if (loading) return;
 
-      if (!user) {
-        setSheets([]);
-        setActiveSheetId("");
-        setIsLoaded(true);
-        return;
-      }
-
-      const cloudSheets = await getUserSheets(user.uid);
-
-           if (cloudSheets.length > 0) {
-        setSheets(cloudSheets);
-        setActiveSheetId(cloudSheets[0].id);
-      } else {
-        setSheets([]);
-        setActiveSheetId("");
-      }
-
+    if (!user) {
+      history.set({
+        sheets: [],
+        activeSheetId: "",
+      });
       setIsLoaded(true);
+      return;
     }
 
-    loadData();
-  }, [user, loading]);
+    const cloudSheets = await getUserSheets(user.uid);
+
+    const normalizedSheets = cloudSheets.map((sheet) => ({
+      ...sheet,
+      columns: Array.isArray(sheet.columns) ? sheet.columns : [],
+      rows: Array.isArray(sheet.rows) ? sheet.rows : [],
+      formulas: Array.isArray(sheet.formulas) ? sheet.formulas : [],
+    }));
+
+    if (normalizedSheets.length > 0) {
+      history.set({
+        sheets: normalizedSheets,
+        activeSheetId: normalizedSheets[0].id,
+      });
+    } else {
+      history.set({
+        sheets: [],
+        activeSheetId: "",
+      });
+    }
+
+    setIsLoaded(true);
+  }
+
+  loadData();
+}, [user, loading]);
 
   useEffect(() => {
     async function persist() {
@@ -174,8 +219,13 @@ export default function CloudLedgerMVP() {
 
   return (
     <div className="h-dvh overflow-hidden bg-gray-100">
-      <AppHeader onOpenSidebar={() => setSidebarOpen(true)} />
-
+<AppHeader
+  onOpenSidebar={() => setSidebarOpen(true)}
+  onUndo={history.undo}
+  onRedo={history.redo}
+  canUndo={history.canUndo}
+  canRedo={history.canRedo}
+/>
       <div className="flex h-[calc(100dvh-65px)] overflow-hidden">
         <SheetSidebar
           sheets={sheets}
@@ -217,6 +267,13 @@ export default function CloudLedgerMVP() {
                     onAddRow={addRow}
                     onExport={() => setExportModalOpen(true)}
                   />
+                  <button
+  type="button"
+  onClick={() => setManageColumnsOpen(true)}
+  className="rounded-xl border px-4 py-2 text-sm font-medium text-black md:hidden"
+>
+  Manage Columns
+</button>
                 </div>
 
                 <input
@@ -240,7 +297,10 @@ export default function CloudLedgerMVP() {
                 sortConfig={sortConfig}
               />
 
-              <SheetSummary activeSheet={activeSheet} />
+              <SheetSummary
+  activeSheet={activeSheet}
+  onRenameSummary={renameFormula}
+/>
             </div>
           )}
         </main>
@@ -285,23 +345,31 @@ export default function CloudLedgerMVP() {
         }}
         columns={activeSheet?.columns || []}
       />
-
+<ManageColumnsModal
+  open={manageColumnsOpen}
+  onClose={() => setManageColumnsOpen(false)}
+  columns={activeSheet?.columns || []}
+  onMoveUp={(columnId) => moveColumn(columnId, "up")}
+  onMoveDown={(columnId) => moveColumn(columnId, "down")}
+  onDeleteColumn={deleteColumn}
+/>
       <ExportModal
-        open={exportModalOpen}
-        onClose={() => setExportModalOpen(false)}
-        defaultFileName={defaultExportName}
-        onExport={async (fileName, format) => {
-          if (!activeSheet) return;
+  open={exportModalOpen}
+  onClose={() => setExportModalOpen(false)}
+  defaultFileName={defaultExportName}
+  onExport={async ({ fileName, format, includeSummary }) => {
+    if (!activeSheet) return;
 
-          await exportActiveSheet({
-            activeSheet,
-            fileName,
-            format,
-          });
+    await exportActiveSheet({
+      activeSheet,
+      fileName,
+      format,
+      includeSummary,
+    });
 
-          setExportModalOpen(false);
-        }}
-      />
+    setExportModalOpen(false);
+  }}
+/>
     </div>
   );
 }

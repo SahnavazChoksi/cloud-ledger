@@ -41,25 +41,30 @@ export default function SortableColumnHeader({
     <th
       ref={setNodeRef}
       style={style}
-      className="whitespace-nowrap border-b bg-gray-100 px-2 py-3 text-left md:px-4"
+      className="whitespace-nowrap border-b bg-gray-100 px-2 py-3 text-left align-middle md:px-4"
     >
-      <button
-  ref={setActivatorNodeRef}
-  type="button"
-  className="touch-none select-none rounded bg-gray-500 px-3 py-2 text-white hover:bg-gray-400"
-  style={{ touchAction: "none" }}
-  {...attributes}
-  {...listeners}
->
-  ☰
-</button>
+      <div className="flex items-center gap-2">
+        <button
+          ref={setActivatorNodeRef}
+          type="button"
+          className="hidden touch-none select-none rounded bg-gray-500 px-3 py-2 text-white hover:bg-gray-400 md:inline-flex"
+          style={{ touchAction: "none" }}
+          aria-label={`Drag ${column.name} column`}
+          {...attributes}
+          {...listeners}
+        >
+          ☰
+        </button>
 
         <button
           type="button"
           onClick={() => onSort(column.id)}
-          className="flex items-center gap-1 text-left font-semibold text-black"
+          className="flex min-w-0 items-center gap-1 text-left font-semibold text-black"
         >
-          <span className="max-w-[110px] truncate md:max-w-none">{column.name}</span>
+          <span className="max-w-[110px] truncate md:max-w-none">
+            {column.name}
+          </span>
+
           {sortConfig?.columnId === column.id ? (
             <span className="text-xs text-black">
               {sortConfig.direction === "asc" ? "↑" : "↓"}
@@ -72,11 +77,13 @@ export default function SortableColumnHeader({
         <button
           type="button"
           onClick={() => onDelete(column.id)}
-          className="ml-auto rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600"
+          className="ml-auto hidden rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-sm font-medium text-red-600 hover:bg-red-100 md:inline-flex"
+          aria-label={`Delete ${column.name} column`}
+          title="Delete column"
         >
-          ×
+          Delete
         </button>
-      
+      </div>
     </th>
   );
 }
