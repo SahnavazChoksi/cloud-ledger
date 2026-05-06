@@ -4,7 +4,7 @@
 import { useMemo } from "react";
 import { useUndoRedo } from "@/hooks/useUndoRedo";
 import ManageColumnsModal from "@/components/modals/ManageColumnsModal";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sheet } from "@/types";
 import { exportActiveSheet } from "@/utils/export";
 import CreateSheetModal from "@/components/modals/CreateSheetModal";
@@ -67,7 +67,7 @@ const setActiveSheetId: React.Dispatch<React.SetStateAction<string>> = (
   const [isLoaded, setIsLoaded] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
-
+const hasHydratedRef = useRef(false);
   const { user, loading } = useAuth();
 
   const activeSheet = sheets.find((sheet) => sheet.id === activeSheetId);
@@ -180,14 +180,24 @@ const setActiveSheetId: React.Dispatch<React.SetStateAction<string>> = (
   loadData();
 }, [user, loading]);
 
-  useEffect(() => {
-    async function persist() {
-      if (!isLoaded || !user) return;
-      await Promise.all(sheets.map((sheet) => saveUserSheet(user.uid, sheet)));
-    }
+ useEffect(() => {
+  if (!isLoaded || !user) return;
 
-    persist();
-  }, [sheets, user, isLoaded]);
+  if (!hasHydratedRef.current) {
+    hasHydratedRef.current = true;
+    return;
+  }
+
+  async function persist() {
+    await Promise.all(sheets.map((sheet) => saveUserSheet(user.uid, sheet)));
+  }
+
+  persist();
+}, [sheets, user, isLoaded]);
+
+useEffect(() => {
+  hasHydratedRef.current = false;
+}, [user?.uid]);
 
   const defaultExportName = `${activeSheet?.name || "Sheet"}_${formatDateTimeForFileName()}`;
 
